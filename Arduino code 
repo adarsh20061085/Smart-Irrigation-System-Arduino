@@ -1,0 +1,100 @@
+/*
+  Smart Irrigation System
+  -----------------------
+  Arduino Uno
+  Soil Moisture Sensor -> A0
+  Relay Module         -> D7
+  Water Pump           -> Relay
+
+  Author: Adarsh Kumar Sah
+*/
+
+const int SOIL_SENSOR_PIN = A0;
+const int RELAY_PIN = 7;
+
+// Adjust these values after calibrating your sensor
+const int DRY_VALUE = 620;
+const int WET_VALUE = 310;
+
+// Pump starts when moisture goes below this percentage
+const int MOISTURE_THRESHOLD = 35;
+
+// Pump running time: 5 seconds
+const unsigned long PUMP_RUN_TIME = 5000;
+
+// Check soil every 10 seconds
+const unsigned long CHECK_INTERVAL = 10000;
+
+unsigned long lastCheckTime = 0;
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(SOIL_SENSOR_PIN, INPUT);
+  pinMode(RELAY_PIN, OUTPUT);
+
+  // Pump OFF at startup
+  digitalWrite(RELAY_PIN, HIGH);
+
+  Serial.println("================================");
+  Serial.println("   SMART IRRIGATION SYSTEM");
+  Serial.println("================================");
+  Serial.println("System Started...");
+  Serial.println();
+}
+
+void loop() {
+
+  // Check soil at regular intervals
+  if (millis() - lastCheckTime >= CHECK_INTERVAL) {
+
+    lastCheckTime = millis();
+
+    int sensorValue = analogRead(SOIL_SENSOR_PIN);
+
+    // Convert sensor reading to moisture percentage
+    int moisturePercentage = map(
+      sensorValue,
+      DRY_VALUE,
+      WET_VALUE,
+      0,
+      100
+    );
+
+    // Keep percentage between 0 and 100
+    moisturePercentage = constrain(moisturePercentage, 0, 100);
+
+    Serial.print("Sensor Value: ");
+    Serial.println(sensorValue);
+
+    Serial.print("Soil Moisture: ");
+    Serial.print(moisturePercentage);
+    Serial.println("%");
+
+    // Check whether soil is dry
+    if (moisturePercentage < MOISTURE_THRESHOLD) {
+
+      Serial.println("Status: SOIL IS DRY");
+      Serial.println("Water Pump: ON");
+
+      // Turn pump ON
+      digitalWrite(RELAY_PIN, LOW);
+
+      delay(PUMP_RUN_TIME);
+
+      // Turn pump OFF
+      digitalWrite(RELAY_PIN, HIGH);
+
+      Serial.println("Water Pump: OFF");
+      Serial.println("Watering cycle completed.");
+    }
+
+    else {
+
+      Serial.println("Status: SOIL MOIST");
+      Serial.println("Water Pump: OFF");
+    }
+
+    Serial.println("--------------------------------");
+  }
+}
